@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Local dev server — runs the portfolio + a faithful emulation of the Netlify Functions.
+"""Local dev server — runs the portfolio + a faithful emulation of the /api endpoints.
 
-Stdlib only. Mirrors netlify/lib/auth.js + validate.js behavior:
+Stdlib only. Mirrors lib/auth.js + validate.js behavior:
   same session-token format, same cookie attributes, same CSRF checks,
   same sanitization rules. Published content persists to .dev-portfolio.json.
 
@@ -61,7 +61,7 @@ def save_portfolio(data):
         json.dump(data, f)
 
 
-# ---------- auth (mirror of netlify/lib/auth.js) ----------
+# ---------- auth (mirror of lib/auth.js) ----------
 
 def b64e(b):
     return base64.b64encode(b).decode().rstrip("=").replace("+", "-").replace("/", "_")
@@ -129,7 +129,7 @@ def rate_limited(ip):
     return len(arr) > 8
 
 
-# ---------- validation (mirror of netlify/lib/validate.js) ----------
+# ---------- validation (mirror of lib/validate.js) ----------
 
 MAX_RAW = 1_500_000
 SECTIONS = ["about", "skills", "projects", "experience", "education", "contact"]
@@ -358,9 +358,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urlparse(self.path).path
-        fn = path.replace("/.netlify/functions/", "").replace("/api/", "")
+        fn = path.replace("/api/", "")
         h = self._headers()
-        if path.startswith(("/.netlify/functions/", "/api/")):
+        if path.startswith("/api/"):
             if fn == "portfolio-get":
                 data = load_portfolio()
                 body = json.dumps(data).encode()
@@ -378,7 +378,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
-        fn = path.replace("/.netlify/functions/", "").replace("/api/", "")
+        fn = path.replace("/api/", "")
         h = self._headers()
         length = int(h.get("content-length", 0) or 0)
         raw = self.rfile.read(length) if length else b""

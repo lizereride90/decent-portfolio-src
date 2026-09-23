@@ -2,9 +2,8 @@
   "name": "portfolio-builder",
   "version": "1.0.0",
   "private": true,
-  "description": "Personal portfolio with secure visual editor, deployable to Netlify or Vercel",
+  "description": "Personal portfolio with secure visual editor, deployable to Vercel",
   "dependencies": {
-    "@netlify/blobs": "^8.0.0",
     "@vercel/blob": "^1.0.0"
   }
 }
