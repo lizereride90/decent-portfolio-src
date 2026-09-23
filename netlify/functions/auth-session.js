@@ -1,4 +1,4 @@
-const auth = require("../lib/auth");
+const auth = require("../../lib/auth");
 
 // GET /.netlify/functions/auth-session — returns { authenticated: true/false }.
 // Used by the frontend to decide whether to show the editor entry.

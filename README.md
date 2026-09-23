@@ -1,6 +1,6 @@
 # Portfolio + Visual Editor
 
-A personal portfolio site with a secure, Framer-style visual editor. The owner edits content directly from the live site — no code changes. Deployable to Netlify as-is.
+A personal portfolio site with a secure, Framer-style visual editor. The owner edits content directly from the live site — no code changes. Deployable to **Netlify or Vercel** as-is (`netlify/` functions + `api/` functions share all logic via `lib/`).
 
 ## How it works
 
@@ -31,7 +31,7 @@ A personal portfolio site with a secure, Framer-style visual editor. The owner e
 > and `BLOBS_TOKEN` (avatar → User settings → Applications → Personal access
 > tokens → New access token). The backend uses them as an explicit fallback.
 
-## Deploy
+## Deploy — Netlify
 
 Option A — drag & drop: zip this folder (without `node_modules`) and drop it on Netlify Drop.
 
@@ -39,6 +39,14 @@ Option B — Git:
 1. Push this folder to a repo.
 2. Netlify → Add new site → Import from Git. Build settings are read from `netlify.toml` (no build command, publish `.`, functions `netlify/functions`).
 3. Set the two env vars above, redeploy.
+
+## Deploy — Vercel
+
+1. Push this folder to a repo.
+2. Vercel → Add New → Project → Import the repo. Framework preset: **Other** (static). No build command, output directory `.` (defaults work — `api/` is picked up automatically).
+3. Project → Settings → Environment Variables: add `ADMIN_PASSWORD` and `SESSION_SECRET` (same values as above).
+4. Storage → Create Database → **Blob** → connect it to the project. This auto-injects `BLOB_READ_WRITE_TOKEN`. (Without it, the editor will warn that saves aren't persisted.)
+5. Deploy. Same editor flow as Netlify (`?edit` → password → Publish).
 
 ## Local development
 
@@ -64,15 +72,19 @@ index.html            public portfolio + hidden login + editor shell
 css/                  base.css (tokens/login/fab) · portfolio.css · editor.css
 js/
   config-default.js   centralized default portfolio data
-  api.js              fetch layer (no secrets)
+  api.js              fetch layer, /api/* on both hosts (no secrets)
   theme.js            CSS-variable theme application
   render.js           data → DOM
   main.js             boot, discreet admin entry, login modal
   editor/             controls.js · editor-state.js (undo/redo) · panels.js · editor.js
+lib/                  shared backend logic: auth.js · validate.js · default-data.js
+                      vercel.js (req/res adapter) · store-vercel.js (Vercel Blob)
 netlify/
   functions/          auth-login · auth-logout · auth-session · portfolio-get · portfolio-save
-  lib/                auth.js (sessions/cookies/CSRF) · store.js (Blobs) · validate.js
+  lib/                store-blobs.js (Netlify Blobs)
+api/                  same five endpoints in Vercel Serverless Function format
 netlify.toml          build, /api/* redirects, security headers
+vercel.json           security headers (functions are zero-config)
 ```
 
 ## Editor test checklist

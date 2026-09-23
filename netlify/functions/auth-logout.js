@@ -1,4 +1,4 @@
-const auth = require("../lib/auth");
+const auth = require("../../lib/auth");
 
 // POST /.netlify/functions/auth-logout — clears the session cookie.
 exports.handler = async (event) => {

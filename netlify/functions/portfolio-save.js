@@ -1,6 +1,6 @@
-const auth = require("../lib/auth");
-const { savePortfolio } = require("../lib/store");
-const { sanitizePortfolio } = require("../lib/validate");
+const auth = require("../../lib/auth");
+const { savePortfolio } = require("../lib/store-blobs");
+const { sanitizePortfolio } = require("../../lib/validate");
 
 // POST /.netlify/functions/portfolio-save — admin only.
 exports.handler = async (event) => {

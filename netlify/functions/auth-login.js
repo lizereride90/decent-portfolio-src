@@ -1,4 +1,4 @@
-const auth = require("../lib/auth");
+const auth = require("../../lib/auth");
 
 // POST /.netlify/functions/auth-login  { password: "..." }
 // Sets an HttpOnly session cookie on success. Never returns secrets.

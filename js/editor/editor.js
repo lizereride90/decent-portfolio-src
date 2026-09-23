@@ -209,8 +209,9 @@ window.PortfolioEditor = (() => {
       const fresh = structuredClone(window.EditorState.get());
       window.__portfolioData = fresh;
       const backend = res?.storage || "unknown";
+      const ok = res?.persisted !== false && backend !== "memory-fallback" && backend !== "unknown";
       lastBackend = backend;
-      if (backend === "netlify-blobs" || backend === "local-file") {
+      if (ok) {
         toastMsg("Published · live now");
         els.saveLabel.textContent = `Published · stored (${backend})`;
       } else {

@@ -1,6 +1,8 @@
 /* API layer — all server communication lives here. No secrets in this file. */
 window.PortfolioAPI = (() => {
-  const FN = (name) => `/.netlify/functions/${name}`;
+  // "/api/..." works on both hosts: native routes on Vercel,
+  // redirected to Functions on Netlify (see netlify.toml).
+  const FN = (name) => `/api/${name}`;
 
   async function request(path, options = {}) {
     const res = await fetch(path, {
