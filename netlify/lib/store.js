@@ -6,28 +6,44 @@ const STORE_NAME = "portfolio-data";
 
 let memoryCache = null;
 let blobsAvailable = null;
+let cachedStore = null;
 let lastError = "";
 
 function getLastError() {
   return lastError;
 }
 
-function getStore() {
+async function getStore() {
   if (blobsAvailable === false) return null;
+  if (cachedStore) return cachedStore;
+  // Path 1: CJS require (works when bundled by Netlify's esbuild).
   try {
-    // Optional dependency — declared in package.json for Netlify builds.
     // eslint-disable-next-line global-require, import/no-unresolved
-    const { getStore } = require("@netlify/blobs");
+    const { getStore: gs } = require("@netlify/blobs");
+    cachedStore = gs(STORE_NAME);
     blobsAvailable = true;
-    return getStore(STORE_NAME);
+    return cachedStore;
   } catch (err) {
-    blobsAvailable = false;
-    return null;
+    lastError = `require: ${err && err.message ? err.message : err}`;
   }
+  // Path 2: dynamic import (covers ESM-only distributions of the library).
+  try {
+    const mod = await import("@netlify/blobs");
+    const gs = mod.getStore || (mod.default && mod.default.getStore);
+    if (typeof gs !== "function") throw new Error("getStore export not found");
+    cachedStore = gs(STORE_NAME);
+    blobsAvailable = true;
+    return cachedStore;
+  } catch (err) {
+    lastError += ` | import: ${err && err.message ? err.message : err}`;
+  }
+  console.warn("Blobs unavailable:", lastError);
+  blobsAvailable = false;
+  return null;
 }
 
 async function loadPortfolio(fallbackData) {
-  const store = getStore();
+  const store = await getStore();
   if (store) {
     try {
       const raw = await store.get(KEY, { type: "text" });
@@ -47,7 +63,7 @@ async function loadPortfolio(fallbackData) {
 
 async function savePortfolio(data) {
   const raw = JSON.stringify(data);
-  const store = getStore();
+  const store = await getStore();
   if (store) {
     try {
       await store.set(KEY, raw, { contentType: "application/json" });
