@@ -12,6 +12,7 @@ window.PortfolioEditor = (() => {
   let built = false;
   let els = {};
   let unsub = null;
+  let lastBackend = "";
 
   function isOpen() {
     return !document.getElementById("editorRoot").hidden;
@@ -177,17 +178,22 @@ window.PortfolioEditor = (() => {
     if (!built) return;
     const st = state || { dirty: window.EditorState.isDirty(), canUndo: window.EditorState.canUndo(), canRedo: window.EditorState.canRedo() };
     els.dot.classList.toggle("dirty", st.dirty);
-    els.saveLabel.textContent = st.dirty ? "Unsaved changes" : "All changes saved";
+    els.saveLabel.textContent = st.dirty
+      ? "Unsaved changes"
+      : lastBackend
+        ? `All changes saved · ${lastBackend}`
+        : "All changes saved";
     els.undo.disabled = !st.canUndo;
     els.redo.disabled = !st.canRedo;
     els.publish.disabled = false;
     if (els.publish.dataset.busy === "1") els.publish.disabled = true;
   }
 
-  function toastMsg(msg) {
+  function toastMsg(msg, sticky = false) {
     els.toast.textContent = msg;
     els.toast.classList.add("show");
-    setTimeout(() => els.toast.classList.remove("show"), 2200);
+    clearTimeout(els.toast._t);
+    els.toast._t = setTimeout(() => els.toast.classList.remove("show"), sticky ? 6000 : 2200);
   }
 
   async function publish() {
@@ -202,7 +208,16 @@ window.PortfolioEditor = (() => {
       // Update the canonical copy so reloads match.
       const fresh = structuredClone(window.EditorState.get());
       window.__portfolioData = fresh;
-      toastMsg(res?.storage === "memory-fallback" ? "Saved (dev mode — set up Blobs for persistence)" : "Published · live now");
+      const backend = res?.storage || "unknown";
+      lastBackend = backend;
+      if (backend === "netlify-blobs" || backend === "local-file") {
+        toastMsg("Published · live now");
+        els.saveLabel.textContent = `Published · stored (${backend})`;
+      } else {
+        // Memory fallback: visible in this tab only, gone on refresh.
+        toastMsg("WARNING: storage unavailable — changes will vanish on refresh", true);
+        els.saveLabel.textContent = "NOT persisted (no storage backend)";
+      }
     } catch (err) {
       if (err.status === 401) {
         toastMsg("Session expired — please sign in again");
