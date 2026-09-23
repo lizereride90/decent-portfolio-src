@@ -5,7 +5,6 @@ const KEY = "portfolio.json";
 const STORE_NAME = "portfolio-data";
 
 let memoryCache = null;
-let blobsAvailable = null;
 let cachedStore = null;
 let lastError = "";
 
@@ -13,37 +12,70 @@ function getLastError() {
   return lastError;
 }
 
-async function getStore() {
-  if (blobsAvailable === false) return null;
+function errMsg(err) {
+  return err && err.message ? err.message : String(err);
+}
+
+// Resolve a Blobs store through a fallback chain:
+// 1. automatic environment (works on most Netlify Functions runtimes)
+// 2. Lambda-compatibility handshake (runtimes that need connectLambda)
+// 3. explicit credentials from env (always works when set)
+async function getStore(event) {
   if (cachedStore) return cachedStore;
-  // Path 1: CJS require (works when bundled by Netlify's esbuild).
+  const errors = [];
+  let lib = null;
   try {
     // eslint-disable-next-line global-require, import/no-unresolved
-    const { getStore: gs } = require("@netlify/blobs");
-    cachedStore = gs(STORE_NAME);
-    blobsAvailable = true;
-    return cachedStore;
+    lib = require("@netlify/blobs");
   } catch (err) {
-    lastError = `require: ${err && err.message ? err.message : err}`;
+    errors.push(`require: ${errMsg(err)}`);
+    try {
+      lib = await import("@netlify/blobs");
+    } catch (err2) {
+      errors.push(`import: ${errMsg(err2)}`);
+      lastError = errors.join(" | ");
+      console.warn("Blobs unavailable:", lastError);
+      return null;
+    }
   }
-  // Path 2: dynamic import (covers ESM-only distributions of the library).
+
   try {
-    const mod = await import("@netlify/blobs");
-    const gs = mod.getStore || (mod.default && mod.default.getStore);
-    if (typeof gs !== "function") throw new Error("getStore export not found");
-    cachedStore = gs(STORE_NAME);
-    blobsAvailable = true;
+    cachedStore = lib.getStore(STORE_NAME);
     return cachedStore;
   } catch (err) {
-    lastError += ` | import: ${err && err.message ? err.message : err}`;
+    errors.push(`auto: ${errMsg(err)}`);
   }
+
+  if (event && typeof lib.connectLambda === "function") {
+    try {
+      lib.connectLambda(event);
+      cachedStore = lib.getStore(STORE_NAME);
+      return cachedStore;
+    } catch (err) {
+      errors.push(`lambda: ${errMsg(err)}`);
+    }
+  }
+
+  const siteID = process.env.BLOBS_SITE_ID || process.env.NETLIFY_SITE_ID || "";
+  const token = process.env.BLOBS_TOKEN || process.env.NETLIFY_BLOBS_TOKEN || "";
+  if (siteID && token) {
+    try {
+      cachedStore = lib.getStore({ name: STORE_NAME, siteID, token });
+      return cachedStore;
+    } catch (err) {
+      errors.push(`explicit: ${errMsg(err)}`);
+    }
+  } else {
+    errors.push("explicit: skipped (set BLOBS_SITE_ID + BLOBS_TOKEN env vars)");
+  }
+
+  lastError = errors.join(" | ");
   console.warn("Blobs unavailable:", lastError);
-  blobsAvailable = false;
   return null;
 }
 
-async function loadPortfolio(fallbackData) {
-  const store = await getStore();
+async function loadPortfolio(fallbackData, event) {
+  const store = await getStore(event);
   if (store) {
     try {
       const raw = await store.get(KEY, { type: "text" });
@@ -61,9 +93,9 @@ async function loadPortfolio(fallbackData) {
   return fallbackData;
 }
 
-async function savePortfolio(data) {
+async function savePortfolio(data, event) {
   const raw = JSON.stringify(data);
-  const store = await getStore();
+  const store = await getStore(event);
   if (store) {
     try {
       await store.set(KEY, raw, { contentType: "application/json" });

@@ -25,6 +25,12 @@ A personal portfolio site with a secure, Framer-style visual editor. The owner e
    - `SESSION_SECRET` — a different random string. Generate: `openssl rand -hex 32`
 2. That's it for storage — content persists in **Netlify Blobs** (store `portfolio-data`), provisioned automatically. No database to set up.
 
+> If publishing ever reports a *"not configured to use Netlify Blobs"* storage
+> error, your Functions runtime didn't auto-provision credentials. Fix: add two
+> more env vars and redeploy — `BLOBS_SITE_ID` (Site settings → General → Site ID)
+> and `BLOBS_TOKEN` (avatar → User settings → Applications → Personal access
+> tokens → New access token). The backend uses them as an explicit fallback.
+
 ## Deploy
 
 Option A — drag & drop: zip this folder (without `node_modules`) and drop it on Netlify Drop.

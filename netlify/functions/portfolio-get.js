@@ -2,9 +2,9 @@ const auth = require("../lib/auth");
 const { loadPortfolio } = require("../lib/store");
 
 // GET /.netlify/functions/portfolio-get — public read of portfolio content.
-exports.handler = async () => {
+exports.handler = async (event) => {
   const fallback = require("./default-data");
-  const data = await loadPortfolio(fallback);
+  const data = await loadPortfolio(fallback, event);
   return {
     statusCode: 200,
     headers: {

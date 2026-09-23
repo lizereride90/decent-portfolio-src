@@ -29,14 +29,14 @@ exports.handler = async (event) => {
     return auth.json(400, { error: err.message || "Invalid portfolio data" });
   }
   try {
-    const result = await savePortfolio(clean);
+    const result = await savePortfolio(clean, event);
     return auth.json(200, {
       ok: true,
       updatedAt: clean.updatedAt,
       storage: result.backend,
       persisted: result.persisted !== false,
       // Blobs error message only (no secrets) — shown in the editor for diagnosis.
-      storageError: result.persisted === false ? String(result.error || "unknown storage error").slice(0, 300) : undefined,
+      storageError: result.persisted === false ? String(result.error || "unknown storage error").slice(0, 400) : undefined,
     });
   } catch (err) {
     console.error("save failed", err);
