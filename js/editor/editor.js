@@ -215,7 +215,8 @@ window.PortfolioEditor = (() => {
         els.saveLabel.textContent = `Published · stored (${backend})`;
       } else {
         // Memory fallback: visible in this tab only, gone on refresh.
-        toastMsg("WARNING: storage unavailable — changes will vanish on refresh", true);
+        const detail = res?.storageError ? ` (${res.storageError})` : "";
+        toastMsg(`WARNING: storage unavailable — changes will vanish on refresh${detail}`, true);
         els.saveLabel.textContent = "NOT persisted (no storage backend)";
       }
     } catch (err) {

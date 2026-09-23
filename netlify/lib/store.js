@@ -6,6 +6,11 @@ const STORE_NAME = "portfolio-data";
 
 let memoryCache = null;
 let blobsAvailable = null;
+let lastError = "";
+
+function getLastError() {
+  return lastError;
+}
 
 function getStore() {
   if (blobsAvailable === false) return null;
@@ -32,7 +37,8 @@ async function loadPortfolio(fallbackData) {
       }
     } catch (err) {
       // Fall through to fallback (e.g. brand-new site, nothing stored yet).
-      console.warn("Blobs read failed, using fallback:", err.message);
+      lastError = `read: ${err && err.message ? err.message : err}`;
+      console.warn("Blobs read failed, using fallback:", lastError);
     }
   }
   if (memoryCache) return memoryCache;
@@ -45,13 +51,17 @@ async function savePortfolio(data) {
   if (store) {
     try {
       await store.set(KEY, raw, { contentType: "application/json" });
+      // Verify the write actually landed before claiming persistence.
+      const check = await store.get(KEY, { type: "text" });
+      if (!check) throw new Error("write verification failed (empty read-back)");
       return { persisted: true, backend: "netlify-blobs" };
     } catch (err) {
-      console.warn("Blobs write failed, using memory fallback:", err.message);
+      lastError = `write: ${err && err.message ? err.message : err}`;
+      console.warn("Blobs write failed, using memory fallback:", lastError);
     }
   }
   memoryCache = data;
-  return { persisted: false, backend: "memory-fallback" };
+  return { persisted: false, backend: "memory-fallback", error: lastError };
 }
 
-module.exports = { loadPortfolio, savePortfolio, STORE_NAME, KEY };
+module.exports = { loadPortfolio, savePortfolio, getLastError, STORE_NAME, KEY };
